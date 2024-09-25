@@ -2,6 +2,7 @@ import os
 
 import streamlit as st
 from dotenv import load_dotenv
+from haystack.utils import Secret
 
 from backend.components.document_store import initialize_document_store
 from backend.components.ingestion import create_ingestion_pipeline, ingest_document
@@ -27,11 +28,19 @@ if "retrieval_pipeline" not in st.session_state:
 # Sidebar for configuration
 st.sidebar.title("Configuration")
 
-# OpenAI API Key input
-openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-if openai_api_key:
-    os.environ["OPENAI_API_KEY"] = openai_api_key
 
+# Replace the existing OpenAI API Key input section with this:
+openai_api_key = st.sidebar.text_input(
+    "OpenAI API Key", type="password", key="api_key_input", on_change=None
+)
+submit_button = st.sidebar.button("Submit API Key")
+
+if submit_button:
+    if openai_api_key:
+        st.session_state.openai_api_key = Secret.from_token(openai_api_key)
+        st.sidebar.success("API Key submitted successfully!")
+    else:
+        st.sidebar.error("Please enter an API Key before submitting.")
 
 # Document upload
 uploaded_file = st.sidebar.file_uploader("Upload a PDF document", type="pdf")
@@ -45,10 +54,10 @@ if uploaded_file is not None:
         # Recreate document store and pipelines
         st.session_state.document_store = initialize_document_store(recreate=True)
         st.session_state.ingestion_pipeline = create_ingestion_pipeline(
-            st.session_state.document_store
+            st.session_state.document_store, st.session_state.openai_api_key
         )
         st.session_state.retrieval_pipeline = create_retrieval_pipeline(
-            st.session_state.document_store
+            st.session_state.document_store, st.session_state.openai_api_key
         )
 
         # Ingest the document
