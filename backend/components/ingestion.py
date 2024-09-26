@@ -4,16 +4,23 @@ from haystack.components.converters import PyPDFToDocument
 from haystack.components.embedders import OpenAIDocumentEmbedder
 from haystack.components.preprocessors import DocumentCleaner, DocumentSplitter
 from haystack.components.writers import DocumentWriter
+from haystack.utils import Secret
 
-from .config import EMBEDDING_MODEL
+from .config import EMBEDDING_MODEL, OPENAI_API_KEY
 
 
-def create_ingestion_pipeline(document_store, openai_api_key):
+def create_ingestion_pipeline(document_store):
+    """
+    Create an ingestion pipeline for processing documents.
+    :param document_store: The document store to write the processed documents to.
+    :param openai_api_key: The API key for accessing the OpenAI service.
+    :return: A Pipeline object configured with components for converting, cleaning, splitting, embedding, and writing documents.
+    """
     converter = PyPDFToDocument()
     cleaner = DocumentCleaner()
     splitter = DocumentSplitter(split_by="word", split_length=250, split_overlap=25)
     embedder = OpenAIDocumentEmbedder(
-        api_key=openai_api_key,
+        api_key=Secret.from_token(OPENAI_API_KEY),
         model=EMBEDDING_MODEL,
     )
     writer = DocumentWriter(document_store=document_store)
